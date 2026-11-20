@@ -1,11 +1,11 @@
 # 权益中台方案｜SaaS 底座 · 分销提成 · 分享积分
 
+> **【历史归档】** 现行基准请见 [`方案-SaaS统一运营与分销管理中台-V3.0.md`](./方案-SaaS统一运营与分销管理中台-V3.0.md)（标签 `docs-v3.0`）。  
 > 原则：**逻辑复用成熟开源，技术栈现代化重写；先立平台主数据，再挂业务模块**  
 > 对照来源：CRMEB / DSKms（分销+积分）、Laravel Affiliate（月结）、OfferKit（积分账本）  
 > 首个业务租户应用：AI Smart 儿童英语（`ai-smart-english`）  
 > 日期：2026-11-20 · 版本 **V2.0（SaaS 底座补齐）** · 文档标签 **`docs-v2.0`**  
-> 需求摘要：[`01-需求简述.md`](./01-需求简述.md)  
-> 变更：在 V1.0 权益旁路之上，补齐 **Tenant / Account / Membership / Subject** 与商业事件契约，使本仓可独立作为可私有部署的 SaaS 底座。
+> 变更：在 V1.0 权益旁路之上，补齐 **Tenant / Account / Membership / Subject** 与商业事件契约。
 
 ---
 

@@ -1,20 +1,23 @@
 # SaaS Platform
 
-可私有部署的 **SaaS 底座**：多租户身份内核 + 可开关的权益模块（分销提成 / 月结 / 分享积分）。
+可私有部署的 **统一运营与分销管理中台**：身份/租户、应用目录、订阅计费、多账本权益、用量计量、双线分销。
 
-首个业务应用对接目标：AI Smart 儿童英语（`ai-smart-english`）。
+初始接入产品：ShareDAO、AI Smart 儿童英语、Digital Store、CertReport。
 
-## 架构
+## 架构（V3.0）
 
 ```text
-Platform Kernel     Tenant · Account · Membership · RBAC · Audit · Config
+Platform Monolith
+  Identity · Tenant · RBAC · Application/TenantApp
+  Plan · Subscription · Billing
+  Wallet / Points / Usage / Entitlement（分账本）
+  ChannelPartner · AffiliatePartner · Settlement
+  Event Gateway（Inbox/Outbox）
         │
-Benefits Module     Partner · Commission · Settlement · Points · Rewards
-        │
-Tenant Apps         ai-smart-english（及其他未来产品）via SSO + 订单事件
+Tenant Apps ── SSO + usage/order events ──► Platform
 ```
 
-文档入口：[`docs/`](./docs/)（需求 + 完整方案，标签 `docs-v2.0`）。
+文档入口：[`docs/`](./docs/)（现行基准标签 `docs-v3.0`）。
 
 ## 仓库结构
 
