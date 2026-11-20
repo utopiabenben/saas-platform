@@ -1,0 +1,400 @@
+// SaaS Platform Kernel + Benefits Module
+// 所有业务表必须带 tenantId（平台超管操作仍落到目标租户）
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  active
+  suspended
+}
+
+enum MembershipStatus {
+  active
+  invited
+  disabled
+}
+
+enum PartnerStatus {
+  pending
+  active
+  suspended
+}
+
+enum CommissionStatus {
+  pending
+  eligible
+  in_statement
+  paid
+  clawback
+}
+
+enum PointsLedgerType {
+  earn
+  redeem
+  expire
+  adjust
+}
+
+enum RewardType {
+  virtual
+  physical
+}
+
+enum FulfillStatus {
+  pending
+  granted
+  shipped
+  failed
+  cancelled
+}
+
+enum StatementReviewStatus {
+  draft
+  pending_review
+  approved
+  paid
+  rejected
+}
+
+model Tenant {
+  id        String       @id @default(cuid())
+  slug      String       @unique
+  name      String
+  status    TenantStatus @default(active)
+  plan      String       @default("starter")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  memberships     Membership[]
+  apps            TenantApp[]
+  apiKeys         ApiKey[]
+  auditLogs       AuditLog[]
+  partners        PartnerProfile[]
+  storefronts     PartnerStorefront[]
+  attributions    Attribution[]
+  orderRefs       OrderRef[]
+  commissions     CommissionLedger[]
+  statements      SettlementStatement[]
+  pointsAccounts  PointsAccount[]
+  pointsLedgers   PointsLedger[]
+  rewardCatalog   RewardCatalog[]
+  redemptions     Redemption[]
+  benefitsConfig  TenantBenefitsConfig?
+  idempotencyKeys IdempotencyKey[]
+}
+
+model Account {
+  id           String   @id @default(cuid())
+  email        String?  @unique
+  phone        String?  @unique
+  passwordHash String?
+  displayName  String?
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships Membership[]
+  auditLogs   AuditLog[]
+}
+
+model Membership {
+  id         String           @id @default(cuid())
+  tenantId   String
+  accountId  String
+  /// roles: tenant_admin | partner | end_user | ops_readonly
+  roles      String[]
+  status     MembershipStatus @default(active)
+  invitedBy  String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  account        Account         @relation(fields: [accountId], references: [id])
+  partnerProfile PartnerProfile?
+  pointsAccount  PointsAccount?
+
+  @@unique([tenantId, accountId])
+  @@index([tenantId])
+  @@index([accountId])
+}
+
+model TenantApp {
+  id            String   @id @default(cuid())
+  tenantId      String
+  clientId      String   @unique @default(cuid())
+  name          String
+  webhookUrl    String?
+  webhookSecret String?
+  scopes        String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  orderRefs OrderRef[]
+
+  @@index([tenantId])
+}
+
+model ApiKey {
+  id        String    @id @default(cuid())
+  tenantId  String
+  name      String
+  keyHash   String
+  prefix    String
+  scopes    String[]
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([prefix])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  tenantId       String?
+  actorAccountId String?
+  action         String
+  resource       String
+  meta           Json?
+  createdAt      DateTime @default(now())
+
+  tenant Tenant?  @relation(fields: [tenantId], references: [id])
+  actor  Account? @relation(fields: [actorAccountId], references: [id])
+
+  @@index([tenantId, createdAt])
+}
+
+model IdempotencyKey {
+  id          String   @id @default(cuid())
+  tenantId    String
+  scope       String
+  key         String
+  responseRef Json?
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, scope, key])
+}
+
+model TenantBenefitsConfig {
+  id                     String   @id @default(cuid())
+  tenantId               String   @unique
+  defaultCommissionRate  Float    @default(0.3)
+  attributionTtlDays     Int      @default(15)
+  refundHoldDays         Int      @default(10)
+  shareVsCommission      String   @default("assist_points") // assist_points | zero
+  storefrontMaxItems     Int      @default(8)
+  pointsRules            Json?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model PartnerProfile {
+  id             String        @id @default(cuid())
+  tenantId       String
+  membershipId   String        @unique
+  inviteCode     String
+  commissionRate Float?
+  payoutInfo     Json?
+  status         PartnerStatus @default(pending)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id])
+  membership  Membership             @relation(fields: [membershipId], references: [id])
+  storefront  PartnerStorefront?
+  attributions Attribution[]
+  orderRefs   OrderRef[]
+  commissions CommissionLedger[]
+  statements  SettlementStatement[]
+
+  @@unique([tenantId, inviteCode])
+  @@index([tenantId])
+}
+
+model PartnerStorefront {
+  id        String   @id @default(cuid())
+  tenantId  String
+  partnerId String   @unique
+  /// [{ courseId, sort }]
+  items     Json     @default("[]")
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id])
+  partner PartnerProfile @relation(fields: [partnerId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Attribution {
+  id         String   @id @default(cuid())
+  tenantId   String
+  visitorKey String
+  partnerId  String
+  touch      String   @default("last") // first | last
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id])
+  partner PartnerProfile @relation(fields: [partnerId], references: [id])
+
+  @@index([tenantId, visitorKey])
+  @@index([partnerId])
+}
+
+model OrderRef {
+  id              String    @id @default(cuid())
+  tenantId        String
+  appId           String?
+  externalOrderId String
+  amountPaid      Decimal   @db.Decimal(12, 2)
+  currency        String    @default("CNY")
+  partnerId       String?
+  accountId       String?
+  paidAt          DateTime
+  refundedAt      DateTime?
+  meta            Json?
+  createdAt       DateTime  @default(now())
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id])
+  app         TenantApp?          @relation(fields: [appId], references: [id])
+  partner     PartnerProfile?     @relation(fields: [partnerId], references: [id])
+  commissions CommissionLedger[]
+
+  @@unique([tenantId, externalOrderId])
+  @@index([tenantId, paidAt])
+  @@index([partnerId])
+}
+
+model CommissionLedger {
+  id           String           @id @default(cuid())
+  tenantId     String
+  orderRefId   String
+  partnerId    String
+  amount       Decimal          @db.Decimal(12, 2)
+  rate         Float
+  status       CommissionStatus @default(pending)
+  holdUntil    DateTime?
+  clawbackOfId String?
+  statementId  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  tenant    Tenant               @relation(fields: [tenantId], references: [id])
+  orderRef  OrderRef             @relation(fields: [orderRefId], references: [id])
+  partner   PartnerProfile       @relation(fields: [partnerId], references: [id])
+  clawbackOf CommissionLedger?   @relation("Clawback", fields: [clawbackOfId], references: [id])
+  clawbacks  CommissionLedger[]  @relation("Clawback")
+  statement SettlementStatement? @relation(fields: [statementId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([partnerId, status])
+  @@index([holdUntil])
+}
+
+model SettlementStatement {
+  id           String                @id @default(cuid())
+  tenantId     String
+  partnerId    String?
+  periodStart  DateTime
+  periodEnd    DateTime
+  totalAmount  Decimal               @db.Decimal(12, 2)
+  reviewStatus StatementReviewStatus @default(draft)
+  payoutProof  Json?
+  reviewedAt   DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  partner     PartnerProfile?    @relation(fields: [partnerId], references: [id])
+  commissions CommissionLedger[]
+
+  @@index([tenantId, periodStart])
+  @@index([partnerId])
+}
+
+model PointsAccount {
+  id           String   @id @default(cuid())
+  tenantId     String
+  membershipId String   @unique
+  balanceCache Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id])
+  membership Membership     @relation(fields: [membershipId], references: [id])
+  ledgers    PointsLedger[]
+
+  @@index([tenantId])
+}
+
+model PointsLedger {
+  id              String           @id @default(cuid())
+  tenantId        String
+  pointsAccountId String
+  type            PointsLedgerType
+  amount          Int
+  reason          String
+  operatorId      String?
+  meta            Json?
+  createdAt       DateTime         @default(now())
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  pointsAccount PointsAccount @relation(fields: [pointsAccountId], references: [id])
+  redemption    Redemption?
+
+  @@index([tenantId, pointsAccountId, createdAt])
+}
+
+model RewardCatalog {
+  id          String     @id @default(cuid())
+  tenantId    String
+  sku         String
+  name        String
+  pointsPrice Int
+  stock       Int?
+  type        RewardType
+  fulfillEvent String? // e.g. reward.granted payload type
+  active      Boolean    @default(true)
+  meta        Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  redemptions Redemption[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, active])
+}
+
+model Redemption {
+  id             String        @id @default(cuid())
+  tenantId       String
+  rewardId       String
+  pointsLedgerId String        @unique
+  fulfillStatus  FulfillStatus @default(pending)
+  shipping       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  reward       RewardCatalog @relation(fields: [rewardId], references: [id])
+  pointsLedger PointsLedger @relation(fields: [pointsLedgerId], references: [id])
+
+  @@index([tenantId, fulfillStatus])
+}

@@ -1,0 +1,27 @@
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Node
+node_modules/
+dist/
+coverage/
+*.log
+npm-debug.log*
+.turbo/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Prisma
+platform-api/prisma/*.db
+platform-api/prisma/*.db-journal
+
+# Misc
+tmp/
+.cache/
