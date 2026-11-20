@@ -24,8 +24,8 @@ Tenant Apps ── SSO + usage/order events ──► Platform
 ```text
 saas-platform/
   docker-compose.yml      # Postgres + Redis
-  docs/                   # 产品/架构方案
-  platform-api/           # NestJS API（Kernel + Benefits）
+  docs/                   # V3.0 方案与需求
+  platform-api/           # NestJS 中台 API（/api/v1）
 ```
 
 ## 快速开始
@@ -36,41 +36,30 @@ saas-platform/
 docker compose up -d
 ```
 
-### 2. 配置并迁移
+### 2. 配置、迁移与种子
 
 ```bash
 cd platform-api
 cp .env.example .env
 npm install
-npx prisma migrate dev --name init
+npx prisma migrate dev --name v3_init
+npm run prisma:seed
 npm run start:dev
 ```
 
-默认 API：`http://localhost:3100/api`  
-健康检查：`GET /api/health`
+默认 API：`http://localhost:3100/api/v1`  
+健康检查：`GET /api/v1/health`  
+种子账号：`admin-a@example.com` / `ChangeMe123`，租户 `demo-a`
 
-### 3. 开第一个租户
-
-```bash
-curl -X POST http://localhost:3100/api/platform/tenants \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "slug": "ai-smart-english",
-    "name": "AI Smart 儿童英语",
-    "adminEmail": "admin@example.com",
-    "adminPassword": "ChangeMe123"
-  }'
-```
-
-### 4. 登录
+### 3. 登录演示租户
 
 ```bash
-curl -X POST http://localhost:3100/api/auth/login \
+curl -X POST http://localhost:3100/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{
-    "email": "admin@example.com",
+    "email": "admin-a@example.com",
     "password": "ChangeMe123",
-    "tenantSlug": "ai-smart-english"
+    "tenantSlug": "demo-a"
   }'
 ```
 

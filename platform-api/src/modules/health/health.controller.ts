@@ -7,7 +7,7 @@ export class HealthController {
     return {
       ok: true,
       service: 'platform-api',
-      version: '0.1.0',
+      version: '0.3.0',
       ts: new Date().toISOString(),
     };
   }

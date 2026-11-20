@@ -16,11 +16,6 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   displayName?: string;
-
-  /** Join this tenant on register (slug). Optional for platform bootstrap. */
-  @IsOptional()
-  @IsString()
-  tenantSlug?: string;
 }
 
 export class LoginDto {
@@ -38,6 +33,11 @@ export class LoginDto {
   @IsOptional()
   @IsString()
   tenantSlug?: string;
+}
+
+export class RefreshDto {
+  @IsString()
+  refreshToken!: string;
 }
 
 export class SwitchTenantDto {

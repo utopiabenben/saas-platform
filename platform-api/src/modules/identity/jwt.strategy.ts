@@ -2,7 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import type { JwtPayload } from './auth.service';
+
+export type JwtPayload = {
+  sub: string;
+  accountId: string;
+  tenantId?: string;
+  membershipId?: string;
+  roleCodes?: string[];
+  tenantSlug?: string;
+  sessionId?: string;
+};
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -10,18 +19,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.get<string>('JWT_SECRET') ?? 'dev-secret-change-me',
+      secretOrKey: config.get<string>('JWT_SECRET', 'dev-change-me'),
     });
   }
 
   validate(payload: JwtPayload) {
     return {
-      sub: payload.sub,
-      accountId: payload.sub,
+      accountId: payload.accountId ?? payload.sub,
       tenantId: payload.tenantId,
-      tenantSlug: payload.tenantSlug,
       membershipId: payload.membershipId,
-      roles: payload.roles,
+      roleCodes: payload.roleCodes ?? [],
+      tenantSlug: payload.tenantSlug,
+      sessionId: payload.sessionId,
     };
   }
 }

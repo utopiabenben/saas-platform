@@ -1,11 +1,12 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 export type TenantContextData = {
-  tenantId: string;
+  tenantId?: string;
   tenantSlug?: string;
   accountId?: string;
   membershipId?: string;
-  roles?: string[];
+  roleCodes?: string[];
+  sessionId?: string;
 };
 
 const storage = new AsyncLocalStorage<TenantContextData>();
@@ -18,10 +19,8 @@ export const TenantContext = {
     return storage.getStore();
   },
   requireTenantId(): string {
-    const ctx = storage.getStore();
-    if (!ctx?.tenantId) {
-      throw new Error('TENANT_CONTEXT_MISSING');
-    }
-    return ctx.tenantId;
+    const id = storage.getStore()?.tenantId;
+    if (!id) throw new Error('TENANT_CONTEXT_MISSING');
+    return id;
   },
 };
