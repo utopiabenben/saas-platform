@@ -14,7 +14,7 @@ Benefits Module     Partner · Commission · Settlement · Points · Rewards
 Tenant Apps         ai-smart-english（及其他未来产品）via SSO + 订单事件
 ```
 
-详细方案见 [`docs/方案-SaaS底座-权益中台-V2.0.md`](./docs/方案-SaaS底座-权益中台-V2.0.md)。
+文档入口：[`docs/`](./docs/)（需求 + 完整方案，标签 `docs-v2.0`）。
 
 ## 仓库结构
 
