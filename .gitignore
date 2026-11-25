@@ -17,6 +17,8 @@ npm-debug.log*
 .env.local
 .env.*.local
 *.pem
+integrations/*.env
+!integrations/*.env.example
 
 # Prisma
 platform-api/prisma/*.db
